@@ -253,9 +253,7 @@ tbody tr:hover .act-btns{opacity:1}
   </div>
   <div class="nav-right">
     <button class="btn btn-ghost btn-sm" onclick="openCsvImport()" title="CSV 가져오기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/></svg> CSV 가져오기</button>
-    <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="CSV 추출"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> CSV</button>
-    <button class="btn btn-ghost btn-sm" onclick="exportData()" title="데이터 백업"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 백업</button>
-    <button class="btn btn-ghost btn-sm" onclick="openRestoreModal()" title="데이터 복원"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 복원</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="CSV 내보내기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> CSV 내보내기</button>
     <div class="cur-user"><span id="cur-av" class="avatar" style="width:28px;height:28px;font-size:11px"></span><span id="cur-name" style="font-size:13px;font-weight:500"></span></div>
     <button class="btn btn-ghost btn-sm" onclick="logout()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
   </div>
@@ -533,45 +531,6 @@ function filterWeek(w,btn){currentFilter=w;document.querySelectorAll(".wf-btn").
 const TRACK_ORDER=["common","core","identity","asset","site","film","collab"];
 function renderTable(){const tbody=document.getElementById("tbody");tbody.innerHTML="";let filteredTasks=currentFilter==="all"?tasks:tasks.filter(t=>t.w===currentFilter);if(hideDone)filteredTasks=filteredTasks.filter(t=>!checks[t.id]);if(currentTrackFilter!=="all")filteredTasks=filteredTasks.filter(t=>t.t===currentTrackFilter);const MAX_AV=2;const weeks=[...new Set(tasks.map(t=>t.w))].sort((a,b)=>WEEK_ORDER.indexOf(a)-WEEK_ORDER.indexOf(b));const weekList=currentFilter==="all"?weeks:[currentFilter];weekList.forEach(w=>{const weekTasks=filteredTasks.filter(t=>t.w===w);if(!weekTasks.length)return;if(currentFilter==="all"&&SEP_MAP[w]){const sepMonth=document.createElement("tr");sepMonth.className="sep-row";sepMonth.innerHTML=`<td colspan="8">${SEP_MAP[w]}</td>`;tbody.appendChild(sepMonth);}const weekMeta=weekTasks.find(t=>t.m);const bdgHtml=weekMeta&&weekMeta.b?(()=>{const bg=BADGES.find(x=>x.name===weekMeta.b);return bg?`<span style="display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:${bg.bg};color:${bg.ft};margin-left:6px;vertical-align:middle">${esc(weekMeta.b)}</span>`:""})():"";const weekHeaderTr=document.createElement("tr");weekHeaderTr.className="week-header-row";weekHeaderTr.innerHTML=`<td class="tc"></td><td class="td-week tc" style="font-size:14px;font-weight:700;color:var(--b-dk)">${w}</td><td class="td-date" style="color:var(--text2)">${weekMeta?.d||""}</td><td class="td-main" colspan="5"><span style="display:inline-flex;align-items:center;gap:8px">${weekMeta?.m?esc(weekMeta.m):""}${bdgHtml}<button class="btn btn-sm btn-ghost week-edit-btn" onclick="editWeekTitle('${w}')">${SVG.edit}</button></span></td>`;tbody.appendChild(weekHeaderTr);TRACK_ORDER.forEach(trackKey=>{const trackTasks=weekTasks.filter(t=>t.t===trackKey);if(!trackTasks.length)return;const tm=TRACK_META[trackKey]||{name:trackKey,cls:"t-core",color:"#888"};trackTasks.forEach(task=>{const isDone=checks[task.id];const av=assignees[task.id]||[];const avHtml=(()=>{const vis=av.slice(0,MAX_AV);const rest=av.length-MAX_AV;const allNames=av.map(mid=>{const m=members.find(x=>x.id===mid);return m?m.name:"";}).filter(Boolean).join(", ");const html=vis.map(mid=>{const m=members.find(x=>x.id===mid);if(!m)return"";const c=avColors(m.colorIdx);return`<span class="av-sm" style="background:${c.bg};color:${c.ft}" title="${esc(allNames)}">${esc(initials(m.name))}</span>`;}).join("");return html+(rest>0?`<span class="av-more" title="${esc(allNames)}">+${rest}</span>`:"");})();const tr=document.createElement("tr");tr.id="row-"+task.id;if(isDone)tr.classList.add("done-row");tr.innerHTML=`<td class="tc"><input type="checkbox" ${isDone?"checked":""} onchange="toggle(${task.id})"></td><td class="td-week tc"></td><td class="td-date"></td><td class="td-main"></td><td><span class="tp ${tm.cls}"><span style="width:7px;height:7px;border-radius:50%;background:${tm.color};display:inline-block;flex-shrink:0"></span>${tm.name}</span></td><td><span class="task-text">${esc(task.task)}</span></td><td><div class="assignees">${avHtml||`<span style="font-size:12px;color:var(--text3)">—</span>`}</div></td><td class="tc"><div class="act-btns"><button class="btn btn-sm btn-ghost" onclick="openEditPopover(${task.id},this)">${SVG.edit}</button></div></td>`;tbody.appendChild(tr);});});});}
 
-function exportData(){
-  const data={tasks,checks,assignees,history_log,WEEK_DATES,WEEK_ORDER,BADGES,nextId,members,nextMId};
-  const json=JSON.stringify(data,null,2);
-  document.getElementById('backup-json').value=json;
-  document.getElementById('backup-modal').style.display='flex';
-}
-function closeBackup(){document.getElementById('backup-modal').style.display='none';}
-function copyBackup(){
-  const ta=document.getElementById('backup-json');
-  ta.select();ta.setSelectionRange(0,99999);
-  document.execCommand('copy');
-  const btn=document.getElementById('copy-btn');
-  btn.textContent='✓ 복사됨';setTimeout(()=>btn.textContent='클립보드 복사',1500);
-}
-function openRestoreModal(){document.getElementById('restore-modal').style.display='flex';document.getElementById('restore-json').value='';}
-function closeRestore(){document.getElementById('restore-modal').style.display='none';}
-function importData(){
-  const json=document.getElementById('restore-json').value.trim();
-  if(!json){alert('JSON을 붙여넣어 주세요.');return;}
-  try{
-    const d=JSON.parse(json);
-    if(!d.tasks||!d.members){alert('올바른 백업 데이터가 아닙니다.');return;}
-    if(!confirm('현재 데이터를 덮어씁니다. 계속하시겠습니까?'))return;
-    tasks=d.tasks||[];
-    const fc={};Object.entries(d.checks||{}).forEach(([k,v])=>{fc[parseInt(k)]=v;});checks=fc;
-    const fa={};Object.entries(d.assignees||{}).forEach(([k,v])=>{fa[parseInt(k)]=v;});assignees=fa;
-    history_log=d.history_log||[];
-    WEEK_DATES=d.WEEK_DATES||{...WEEK_DATES_INIT};
-    WEEK_ORDER=d.WEEK_ORDER||[...WEEK_ORDER_INIT];
-    BADGES=d.BADGES||BADGES;
-    nextId=d.nextId||0;
-    members=d.members||[];
-    nextMId=d.nextMId||1;
-    scheduleSave();
-    renderAll();renderMemberGrid();renderLoginList();
-    closeRestore();
-    alert('복원 완료!');
-  }catch(err){alert('파싱 오류: '+err.message);}
-}
 function renderAll(){renderWeekFilterBtns();renderTrackFilterBtns();renderTable();calcStats();renderTrackBars();renderWeekMini();}
 function toggleHideDone(){hideDone=!hideDone;const btn=document.getElementById("btn-hide-done");btn.style.background=hideDone?"var(--b-lt)":"";btn.style.color=hideDone?"var(--b-md)":"";btn.style.borderColor=hideDone?"var(--b-md)":"";renderTable();}
 function filterTrack(t,btn){currentTrackFilter=t;document.querySelectorAll("#track-filter-row .wf-btn").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");renderTable();}
@@ -767,7 +726,7 @@ function saveBulkEdit(){
     }
   });
   // 모달에서 제거된 기존 업무 삭제
-  const removed=tasks.filter(t=>t.w===w&&!kept.includes(t.id)&&!t.id.toString().startsWith?.("new_"));
+  const removed=tasks.filter(t=>t.w===w&&!kept.includes(t.id));
   removed.forEach(t=>{
     addHistory("del",`[일괄편집] "${t.task}" 삭제`);
     tasks=tasks.filter(x=>x.id!==t.id);
@@ -778,44 +737,6 @@ function saveBulkEdit(){
 function exportCSV(){const list=currentFilter==="all"?tasks:tasks.filter(t=>t.w===currentFilter);const rows=[["id","주차","기간","메인업무","트랙","업무내용","담당자","완료"]];list.forEach(t=>{const tm=TRACK_META[t.t]||{name:t.t};const av=(assignees[t.id]||[]).map(mid=>{const m=members.find(x=>x.id===mid);return m?m.name:"";}).filter(Boolean).join("/");rows.push([t.id,t.w,t.d,t.m,tm.name,t.task,av,checks[t.id]?"완료":"미완료"]);});const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`dunamu-tasks-${new Date().toLocaleDateString("ko-KR").replace(/\.\s/g,"-").replace(".","")}.csv`;a.click();}
 function editWeekTitle(w){const cur=tasks.find(t=>t.w===w&&t.m)?.m||"";const val=prompt("주간 메인 업무 수정",cur);if(val===null)return;const trimmed=val.trim();let updated=false;tasks.forEach(t=>{if(t.w===w&&t.m){t.m=trimmed;updated=true;}});if(!updated&&trimmed){const f=tasks.find(t=>t.w===w);if(f)f.m=trimmed;}addHistory("edit",`${w} 주간 타이틀 → "${trimmed}"`);renderAll();scheduleSave();}
 </script>
-
-<div id="backup-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;padding:24px">
-  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
-    <div style="padding:18px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:15px;font-weight:600">데이터 백업</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">아래 JSON을 복사해서 메모장/노션 등에 저장하세요</div>
-      </div>
-      <button class="btn btn-sm btn-ghost" onclick="closeBackup()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div style="padding:16px 20px">
-      <textarea id="backup-json" readonly style="width:100%;height:260px;font-family:monospace;font-size:11px;padding:10px;border:.5px solid var(--border2);border-radius:var(--r-md);resize:none;background:var(--bg2);color:var(--text);line-height:1.5"></textarea>
-      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
-        <button class="btn btn-sm" onclick="closeBackup()">닫기</button>
-        <button class="btn btn-primary btn-sm" id="copy-btn" onclick="copyBackup()">클립보드 복사</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="restore-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;padding:24px">
-  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
-    <div style="padding:18px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:15px;font-weight:600">데이터 복원</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">백업해둔 JSON을 아래에 붙여넣기 하세요</div>
-      </div>
-      <button class="btn btn-sm btn-ghost" onclick="closeRestore()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div style="padding:16px 20px">
-      <textarea id="restore-json" placeholder="백업 JSON을 여기에 붙여넣으세요..." style="width:100%;height:260px;font-family:monospace;font-size:11px;padding:10px;border:.5px solid var(--border2);border-radius:var(--r-md);resize:none;background:var(--bg2);color:var(--text);line-height:1.5"></textarea>
-      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
-        <button class="btn btn-sm" onclick="closeRestore()">취소</button>
-        <button class="btn btn-primary btn-sm" onclick="importData()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 복원하기</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- 일괄 편집 모달 -->
 <div id="bulk-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto">
