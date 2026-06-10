@@ -252,6 +252,7 @@ tbody tr:hover .act-btns{opacity:1}
     </div>
   </div>
   <div class="nav-right">
+    <button class="btn btn-ghost btn-sm" onclick="openCsvImport()" title="CSV 가져오기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/></svg> CSV 가져오기</button>
     <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="CSV 추출"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> CSV</button>
     <button class="btn btn-ghost btn-sm" onclick="exportData()" title="데이터 백업"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 백업</button>
     <button class="btn btn-ghost btn-sm" onclick="openRestoreModal()" title="데이터 복원"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 복원</button>
@@ -263,6 +264,7 @@ tbody tr:hover .act-btns{opacity:1}
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px">
     <span id="top-sub-count" style="font-size:13px;color:var(--text2)"></span>
     <div style="display:flex;gap:8px">
+      <button class="btn" onclick="openBulkEdit()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 일괄 편집</button>
       <button class="btn" id="btn-hide-done" onclick="toggleHideDone()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> 완료 숨기기</button>
       <button class="btn btn-primary" id="btn-add-main" onclick="openAddPopover()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 항목 추가</button>
     </div>
@@ -577,7 +579,203 @@ function renderTrackFilterBtns(){const el=document.getElementById("track-filter-
 function onWorkloadWeekChange(){workloadWeekFilter=document.getElementById("workload-week-select").value;renderWorkload();}
 function populateWorkloadWeekSelect(){const sel=document.getElementById("workload-week-select");if(!sel)return;const cw=workloadWeekFilter||getCurrentWeek();sel.innerHTML=WEEK_ORDER.map(w=>`<option value="${w}"${w===cw?" selected":""}>${w}${WEEK_DATES[w]?" · "+WEEK_DATES[w]:""}</option>`).join("");}
 
-function exportCSV(){const list=currentFilter==="all"?tasks:tasks.filter(t=>t.w===currentFilter);const rows=[["주차","기간","메인업무","트랙","업무내용","담당자","완료"]];list.forEach(t=>{const tm=TRACK_META[t.t]||{name:t.t};const av=(assignees[t.id]||[]).map(mid=>{const m=members.find(x=>x.id===mid);return m?m.name:"";}).filter(Boolean).join("/");rows.push([t.w,t.d,t.m,tm.name,t.task,av,checks[t.id]?"완료":"미완료"]);});const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`dunamu-tasks-${new Date().toLocaleDateString("ko-KR").replace(/\.\s/g,"-").replace(".","")}.csv`;a.click();}
+let _csvParsed=[];
+function openCsvImport(){
+  document.getElementById("csv-import-modal").style.display="flex";
+  document.getElementById("csv-preview-wrap").style.display="none";
+  document.getElementById("csv-import-btn").style.display="none";
+  document.getElementById("csv-paste-area").style.display="none";
+  document.getElementById("csv-paste-area").value="";
+  document.getElementById("csv-file-input").value="";
+  _csvParsed=[];
+}
+function closeCsvImport(){document.getElementById("csv-import-modal").style.display="none";}
+function onCsvFileLoad(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{document.getElementById("csv-paste-area").value=ev.target.result;document.getElementById("csv-paste-area").style.display="block";parseCsvPreview();};
+  reader.readAsText(file,"UTF-8");
+}
+function parseCSVText(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  return lines.map(line=>{
+    const cols=[];let cur="",inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(line[i]===','&&!inQ){cols.push(cur.trim());cur="";}
+      else cur+=line[i];
+    }
+    cols.push(cur.trim());return cols;
+  });
+}
+function parseCsvPreview(){
+  const text=document.getElementById("csv-paste-area").value.trim();
+  if(!text){alert("CSV 내용을 입력하세요.");return;}
+  const rows=parseCSVText(text);
+  if(rows.length<2){alert("데이터가 없습니다.");return;}
+  const header=rows[0].map(h=>h.toLowerCase().replace(/"/g,""));
+  const idxOf=name=>header.findIndex(h=>h.includes(name));
+  const iId=idxOf("id"),iW=idxOf("주차"),iTr=idxOf("트랙"),iTask=idxOf("업무내용"),iAv=idxOf("담당자"),iDates=idxOf("기간"),iMain=idxOf("메인업무");
+  if(iTask===-1){alert("컬럼 형식이 맞지 않습니다.\n내보낸 CSV를 수정해서 가져오세요.");return;}
+  _csvParsed=[];
+  const body=rows.slice(1);
+  const trackNameMap={};TRACK_ORDER.forEach(k=>{trackNameMap[TRACK_META[k].name]=k;});
+  body.forEach(cols=>{
+    if(!cols[iTask]||cols[iTask]==="")return;
+    const id=iId>=0?cols[iId].replace(/"/g,""):"";
+    const w=iW>=0?cols[iW].replace(/"/g,""):"";
+    const taskText=cols[iTask].replace(/"/g,"");
+    const trName=iTr>=0?cols[iTr].replace(/"/g,""):"";
+    const trKey=trackNameMap[trName]||TRACK_ORDER.find(k=>k===trName)||"common";
+    const avStr=iAv>=0?cols[iAv].replace(/"/g,""):"";
+    const dates=iDates>=0?cols[iDates].replace(/"/g,""):"";
+    const main=iMain>=0?cols[iMain].replace(/"/g,""):"";
+    const isDel=taskText==="*삭제*";
+    const numId=id!==""&&!isNaN(parseInt(id))?parseInt(id):null;
+    const existing=numId!==null?tasks.find(t=>t.id===numId):null;
+    let status;
+    if(isDel)status="삭제";
+    else if(existing)status="수정";
+    else status="추가";
+    _csvParsed.push({id:numId,w,task:taskText,t:trKey,avStr,dates,main,status,existing});
+  });
+  // 렌더 미리보기
+  const tbody=document.getElementById("csv-preview-body");
+  tbody.innerHTML=_csvParsed.map(r=>{
+    const color=r.status==="삭제"?"#FEE2E2":r.status==="수정"?"#DBEAFE":"#DCFCE7";
+    const tc=r.status==="삭제"?"#991B1B":r.status==="수정"?"#1D4ED8":"#15803D";
+    const tm=TRACK_META[r.t]||{name:r.t,color:"#888"};
+    return`<tr style="border-bottom:.5px solid var(--border)">
+      <td style="padding:5px 10px"><span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:${color};color:${tc}">${r.status}</span></td>
+      <td style="padding:5px 10px;font-weight:600;color:var(--b-md)">${esc(r.w)}</td>
+      <td style="padding:5px 10px"><span style="font-size:11px;padding:2px 6px;border-radius:999px;background:${tm.color}18;color:${tm.color}">${esc(tm.name)}</span></td>
+      <td style="padding:5px 10px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.task)}</td>
+      <td style="padding:5px 10px;font-size:12px;color:var(--text2)">${esc(r.avStr)}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("csv-preview-count").textContent=`${_csvParsed.filter(r=>r.status==="추가").length}추가 / ${_csvParsed.filter(r=>r.status==="수정").length}수정 / ${_csvParsed.filter(r=>r.status==="삭제").length}삭제`;
+  document.getElementById("csv-preview-wrap").style.display="block";
+  document.getElementById("csv-import-btn").style.display="inline-flex";
+}
+function executeImportCSV(){
+  const mode=document.querySelector("input[name='import-mode']:checked").value;
+  if(mode==="full"){if(!confirm("모든 업무가 CSV 내용으로 교체됩니다. 계속하시겠습니까?"))return;}
+  const trackNameMap={};TRACK_ORDER.forEach(k=>{trackNameMap[TRACK_META[k].name]=k;});
+  if(mode==="full"){
+    tasks=[];checks={};assignees={};nextId=0;
+  } else if(mode==="week"){
+    const weeks=[...new Set(_csvParsed.filter(r=>r.status!=="삭제").map(r=>r.w))];
+    weeks.forEach(w=>{
+      tasks.filter(t=>t.w===w).forEach(t=>{delete checks[t.id];delete assignees[t.id];});
+      tasks=tasks.filter(t=>t.w!==w);
+    });
+  }
+  _csvParsed.forEach(r=>{
+    if(mode==="smart"){
+      if(r.status==="삭제"&&r.existing){
+        addHistory("del",`[CSV] "${r.existing.task}" 삭제`);
+        tasks=tasks.filter(t=>t.id!==r.existing.id);
+        delete checks[r.existing.id];delete assignees[r.existing.id];
+        return;
+      }
+      if(r.status==="수정"&&r.existing){
+        const idx=tasks.findIndex(t=>t.id===r.existing.id);
+        if(idx>-1){tasks[idx]={...tasks[idx],t:r.t,task:r.task,w:r.w,d:r.dates||tasks[idx].d,m:r.main||tasks[idx].m};}
+        assignees[r.existing.id]=resolveAvIds(r.avStr);
+        addHistory("edit",`[CSV] "${r.task}" 수정`);return;
+      }
+    }
+    if(r.status==="삭제")return;
+    // 추가 (또는 full/week 모드에서 전체 재생성)
+    const nid=nextId++;
+    const mTask=tasks.find(t=>t.w===r.w&&t.m);
+    tasks.push({id:nid,w:r.w,d:r.dates||WEEK_DATES[r.w]||"",m:r.main||(mTask?mTask.m:""),b:"",t:r.t,task:r.task});
+    checks[nid]=false;assignees[nid]=resolveAvIds(r.avStr);
+    addHistory("add",`[CSV] "${r.task}" 추가`);
+  });
+  renderAll();scheduleSave();closeCsvImport();
+  alert(`가져오기 완료! 총 ${_csvParsed.length}개 행 처리됨`);
+}
+function resolveAvIds(avStr){
+  if(!avStr)return[];
+  return avStr.split(/[,/]/).map(n=>{const m=members.find(x=>x.name.trim()===n.trim());return m?m.id:null;}).filter(Boolean);
+}
+function openBulkEdit(){
+  const sel=document.getElementById("bulk-week-select");
+  const cw=currentFilter!=="all"?currentFilter:getCurrentWeek();
+  sel.innerHTML=WEEK_ORDER.map(w=>`<option value="${w}"${w===cw?" selected":""}>${w}${WEEK_DATES[w]?" · "+WEEK_DATES[w]:""}</option>`).join("");
+  renderBulkList(cw);
+  document.getElementById("bulk-modal").style.display="flex";
+}
+function closeBulkEdit(){document.getElementById("bulk-modal").style.display="none";}
+function onBulkWeekChange(){renderBulkList(document.getElementById("bulk-week-select").value);}
+function renderBulkList(w){
+  const el=document.getElementById("bulk-task-list");
+  const wTasks=tasks.filter(t=>t.w===w);
+  el.innerHTML="";
+  wTasks.forEach(task=>{el.appendChild(makeBulkRow(task));});
+}
+function makeBulkRow(task){
+  const row=document.createElement("div");
+  row.dataset.id=task.id;
+  row.style.cssText="display:grid;grid-template-columns:120px 1fr 90px 32px;gap:6px;align-items:center";
+  const trackOpts=TRACK_ORDER.map(k=>`<option value="${k}"${task.t===k?" selected":""}>${TRACK_META[k].name}</option>`).join("");
+  const avNames=(assignees[task.id]||[]).map(mid=>{const m=members.find(x=>x.id===mid);return m?m.name:"";}).filter(Boolean).join(", ");
+  row.innerHTML=`
+    <select class="form-input" style="font-size:12px;padding:5px 8px" data-field="track">${trackOpts}</select>
+    <input class="form-input" style="font-size:13px;padding:6px 8px" data-field="task" value="${esc(task.task)}" placeholder="업무 내용">
+    <input class="form-input" style="font-size:12px;padding:5px 8px" data-field="assignees" value="${esc(avNames)}" placeholder="담당자 (쉼표 구분)">
+    <button class="btn btn-sm btn-ghost btn-danger" onclick="removeBulkRow(this)" title="삭제">${SVG.trash}</button>`;
+  return row;
+}
+function addBulkRow(){
+  const w=document.getElementById("bulk-week-select").value;
+  const dummy={id:"new_"+Date.now(),w,d:WEEK_DATES[w]||"",m:"",b:"",t:"common",task:""};
+  document.getElementById("bulk-task-list").appendChild(makeBulkRow(dummy));
+}
+function removeBulkRow(btn){btn.closest("[data-id]").remove();}
+function saveBulkEdit(){
+  const w=document.getElementById("bulk-week-select").value;
+  const rows=document.querySelectorAll("#bulk-task-list [data-id]");
+  const kept=[];
+  rows.forEach(row=>{
+    const id=row.dataset.id;
+    const trackVal=row.querySelector("[data-field='track']").value;
+    const taskVal=row.querySelector("[data-field='task']").value.trim();
+    const avVal=row.querySelector("[data-field='assignees']").value.trim();
+    if(!taskVal)return;
+    const avIds=avVal?avVal.split(/[,/]/).map(n=>{const m=members.find(x=>x.name.trim()===n.trim());return m?m.id:null;}).filter(Boolean):[];
+    if(id.startsWith("new_")){
+      const nid=nextId++;
+      const mTask=tasks.find(t=>t.w===w&&t.m);
+      tasks.push({id:nid,w,d:WEEK_DATES[w]||"",m:mTask?mTask.m:"",b:"",t:trackVal,task:taskVal});
+      checks[nid]=false;assignees[nid]=avIds;
+      kept.push(nid);
+      addHistory("add",`[일괄편집] "${taskVal}" 추가`);
+    } else {
+      const tid=parseInt(id);
+      const idx=tasks.findIndex(t=>t.id===tid);
+      if(idx>-1){
+        const old=tasks[idx];
+        if(old.task!==taskVal||old.t!==trackVal){
+          addHistory("edit",`[일괄편집] "${taskVal}" 수정`);
+        }
+        tasks[idx]={...old,t:trackVal,task:taskVal};
+        assignees[tid]=avIds;
+      }
+      kept.push(tid);
+    }
+  });
+  // 모달에서 제거된 기존 업무 삭제
+  const removed=tasks.filter(t=>t.w===w&&!kept.includes(t.id)&&!t.id.toString().startsWith?.("new_"));
+  removed.forEach(t=>{
+    addHistory("del",`[일괄편집] "${t.task}" 삭제`);
+    tasks=tasks.filter(x=>x.id!==t.id);
+    delete checks[t.id];delete assignees[t.id];
+  });
+  renderAll();scheduleSave();closeBulkEdit();
+}
+function exportCSV(){const list=currentFilter==="all"?tasks:tasks.filter(t=>t.w===currentFilter);const rows=[["id","주차","기간","메인업무","트랙","업무내용","담당자","완료"]];list.forEach(t=>{const tm=TRACK_META[t.t]||{name:t.t};const av=(assignees[t.id]||[]).map(mid=>{const m=members.find(x=>x.id===mid);return m?m.name:"";}).filter(Boolean).join("/");rows.push([t.id,t.w,t.d,t.m,tm.name,t.task,av,checks[t.id]?"완료":"미완료"]);});const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`dunamu-tasks-${new Date().toLocaleDateString("ko-KR").replace(/\.\s/g,"-").replace(".","")}.csv`;a.click();}
 function editWeekTitle(w){const cur=tasks.find(t=>t.w===w&&t.m)?.m||"";const val=prompt("주간 메인 업무 수정",cur);if(val===null)return;const trimmed=val.trim();let updated=false;tasks.forEach(t=>{if(t.w===w&&t.m){t.m=trimmed;updated=true;}});if(!updated&&trimmed){const f=tasks.find(t=>t.w===w);if(f)f.m=trimmed;}addHistory("edit",`${w} 주간 타이틀 → "${trimmed}"`);renderAll();scheduleSave();}
 </script>
 
@@ -615,6 +813,66 @@ function editWeekTitle(w){const cur=tasks.find(t=>t.w===w&&t.m)?.m||"";const val
         <button class="btn btn-sm" onclick="closeRestore()">취소</button>
         <button class="btn btn-primary btn-sm" onclick="importData()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 복원하기</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 일괄 편집 모달 -->
+<div id="bulk-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto">
+  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:760px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:600;flex:1">주차별 일괄 편집</div>
+      <select class="form-input" id="bulk-week-select" onchange="onBulkWeekChange()" style="width:auto;font-size:13px;padding:5px 10px"></select>
+      <button class="btn btn-sm btn-ghost" onclick="closeBulkEdit()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px 20px">
+      <div id="bulk-task-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:480px;overflow-y:auto"></div>
+      <button class="btn btn-sm" onclick="addBulkRow()" style="width:100%;justify-content:center;border-style:dashed"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 업무 추가</button>
+    </div>
+    <div style="padding:12px 20px;border-top:.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="closeBulkEdit()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveBulkEdit()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV 가져오기 모달 -->
+<div id="csv-import-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto">
+  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:680px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:600">CSV 가져오기</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">내보낸 CSV를 수정 후 가져오세요 · id 있으면 수정, 없으면 추가, 업무내용에 <b>*삭제*</b> 입력 시 삭제</div>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="closeCsvImport()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="file" id="csv-file-input" accept=".csv" onchange="onCsvFileLoad(event)" style="font-size:13px;flex:1;min-width:0">
+        <span style="font-size:12px;color:var(--text3)">또는</span>
+        <button class="btn btn-sm" onclick="document.getElementById('csv-paste-area').style.display=document.getElementById('csv-paste-area').style.display==='none'?'block':'none'">직접 붙여넣기</button>
+      </div>
+      <textarea id="csv-paste-area" placeholder="CSV 내용을 여기에 붙여넣으세요..." style="display:none;width:100%;height:100px;font-family:monospace;font-size:11px;padding:8px;border:.5px solid var(--border2);border-radius:var(--r-md);resize:vertical;margin-bottom:8px"></textarea>
+      <button class="btn btn-sm btn-primary" onclick="parseCsvPreview()" style="margin-bottom:12px">미리보기</button>
+      <div id="csv-preview-wrap" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">가져오기 모드</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="import-mode" value="smart" checked style="margin-top:2px"> <span><b>스마트 병합</b> — id 기준 수정/추가, *삭제* 표시 행 삭제</span></label>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="import-mode" value="week"> <span><b>주차 덮어쓰기</b> — CSV에 포함된 주차만 기존 업무 삭제 후 교체</span></label>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="import-mode" value="full"> <span><b>전체 교체</b> — 모든 업무를 CSV로 교체 (주의)</span></label>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">미리보기 <span id="csv-preview-count" style="font-weight:400;color:var(--text3)"></span></div>
+        <div style="border:.5px solid var(--border2);border-radius:var(--r-md);overflow:hidden;overflow-x:auto;max-height:240px;overflow-y:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:500px">
+            <thead><tr style="background:var(--bg2)"><th style="padding:6px 10px;text-align:left;font-weight:600;white-space:nowrap">상태</th><th style="padding:6px 10px;text-align:left;font-weight:600">주차</th><th style="padding:6px 10px;text-align:left;font-weight:600">트랙</th><th style="padding:6px 10px;text-align:left;font-weight:600">업무내용</th><th style="padding:6px 10px;text-align:left;font-weight:600">담당자</th></tr></thead>
+            <tbody id="csv-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="closeCsvImport()">취소</button>
+      <button class="btn btn-primary btn-sm" id="csv-import-btn" style="display:none" onclick="executeImportCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 가져오기</button>
     </div>
   </div>
 </div>
