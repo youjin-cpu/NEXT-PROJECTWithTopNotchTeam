@@ -1,6 +1,235 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<link rel="stylesheet" href="style.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dunamu Branding Tracker</title>
+
+</head>
+<body>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<div id="pw-screen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">Dunamu Branding</div>
+    <div class="login-title">업무 트래커</div>
+    <div class="login-sub" style="margin-bottom:20px">비밀번호를 입력하세요</div>
+    <input class="form-input" id="pw-input" type="password" placeholder="비밀번호" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="btn btn-primary" onclick="checkPw()" style="width:100%;justify-content:center">확인</button>
+    <div id="pw-error" style="color:#B91C1C;font-size:13px;margin-top:10px;display:none;text-align:center">비밀번호가 올바르지 않습니다. 다시 입력해주세요.</div>
+  </div>
+</div>
+<div id="loading-overlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text">데이터 불러오는 중...</div></div>
+<div class="save-indicator hidden" id="save-indicator"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="14 2 14 8 8 8"/><circle cx="12" cy="15" r="2"/></svg><span id="save-text">저장 중...</span></div>
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">Dunamu Branding</div>
+    <div class="login-title">업무 트래커</div>
+    <div class="login-sub">팀원을 선택하거나 새로 등록하세요</div>
+    <div class="member-list" id="login-member-list"></div>
+    <div class="login-divider">또는 새 팀원으로 시작</div>
+    <div class="new-member-row">
+      <input class="form-input" id="login-new-name" placeholder="이름" style="flex:1">
+      <input class="form-input" id="login-new-role" placeholder="역할" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="registerAndLogin()" style="white-space:nowrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 등록</button>
+    </div>
+  </div>
+</div>
+<div class="app" id="app">
+<div class="wrap">
+<div class="nav">
+  <div class="nav-left">
+    <div class="nav-brand">Dunamu Branding</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('tracker',this)">트래커</button>
+      <button class="nav-tab" onclick="showPage('weekly',this)">주간 현황</button>
+      <button class="nav-tab" onclick="showPage('workload',this)">담당자 현황</button>
+      <button class="nav-tab" onclick="showPage('history',this)">변경 히스토리</button>
+      <button class="nav-tab" onclick="showPage('members',this)">팀원 관리</button>
+    </div>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-ghost btn-sm" onclick="openTrackMgr()" title="트랙 관리"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07"/><path d="M22 12A10 10 0 0 0 12 2"/></svg> 트랙 관리</button>
+    <button class="btn btn-ghost btn-sm" onclick="openCsvImport()" title="CSV 가져오기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/></svg> CSV 가져오기</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="CSV 내보내기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> CSV 내보내기</button>
+    <div class="cur-user"><span id="cur-av" class="avatar" style="width:28px;height:28px;font-size:11px"></span><span id="cur-name" style="font-size:13px;font-weight:500"></span></div>
+    <button class="btn btn-ghost btn-sm" onclick="logout()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+  </div>
+</div>
+<div class="page active" id="page-tracker">
+  <div class="tracker-toolbar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <span id="top-sub-count" style="font-size:13px;color:var(--text2)"></span>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="openBulkEdit()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 일괄 편집</button>
+      <button class="btn" id="btn-hide-done" onclick="toggleHideDone()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> 완료 숨기기</button>
+      <button class="btn btn-primary" id="btn-add-main" onclick="openAddPopover()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 항목 추가</button>
+    </div>
+  </div>
+  <div class="dash">
+    <div class="dash-card c-blue"><div class="dash-label">전체 완성율</div><div class="dash-num" id="d-total-pct">0%</div><div class="dash-sub" id="d-total-sub">0 / 0 완료</div><div class="progress-bar"><div class="progress-fill" id="d-total-bar" style="width:0%;background:var(--b-md)"></div></div></div>
+    <div class="dash-card c-green"><div class="dash-label">이번 주 완료율</div><div class="dash-num" id="d-week-pct">—</div><div class="dash-sub" id="d-week-sub">현재 주차</div><div class="progress-bar"><div class="progress-fill" id="d-week-bar" style="width:0%;background:#059669"></div></div></div>
+    <div class="dash-card c-amber"><div class="dash-label">미완료 업무</div><div class="dash-num" id="d-ms-pct">0</div><div class="dash-sub" id="d-ms-sub">진행 중인 업무</div><div class="progress-bar"><div class="progress-fill" id="d-ms-bar" style="width:0%;background:#D97706"></div></div></div>
+  </div>
+  <div class="toggle-section">
+    <div class="toggle-header" onclick="toggleSection('track')"><div class="toggle-header-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3)"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="8" width="4" height="12"/><rect x="17" y="4" width="4" height="16"/></svg><span class="toggle-label">트랙별 완성율</span></div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="toggle-icon open" id="toggle-icon-track"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <div class="toggle-body open" id="toggle-body-track"><div class="track-bars" id="track-bars"></div></div>
+  </div>
+  <div class="toggle-section">
+    <div class="toggle-header" onclick="toggleSection('week')"><div class="toggle-header-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="toggle-label">주차별 완성율</span></div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="toggle-icon open" id="toggle-icon-week"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <div class="toggle-body open" id="toggle-body-week"><div class="week-mini" id="week-mini"></div></div>
+  </div>
+  <div class="week-filter"><span class="wf-lbl">주차 필터</span><button class="wf-btn active" onclick="filterWeek('all',this)">전체</button><div id="week-filter-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+  <div class="week-filter" id="track-filter-row"><span class="wf-lbl">트랙 필터</span><button class="wf-btn active" onclick="filterTrack('all',this)">전체</button><div id="track-filter-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+  <div class="tbl-wrap">
+    <table>
+      <colgroup><col class="c-chk"><col class="c-week"><col class="c-date"><col class="c-main"><col class="c-track"><col class="c-task"><col class="c-asgn"><col class="c-edit"></colgroup>
+      <thead><tr><th></th><th>주간</th><th>기간</th><th>주간 메인 업무</th><th>트랙</th><th>업무 내용</th><th>담당자</th><th>편집</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<div class="page" id="page-weekly">
+  <div class="page-header" style="margin-bottom:0;align-items:flex-end">
+    <div style="display:flex;align-items:baseline;gap:12px">
+      <div id="weekly-week-label" style="font-size:22px;font-weight:700;color:var(--text1);letter-spacing:-.03em;line-height:1"></div>
+      <div class="page-title" style="font-size:13px;font-weight:500;color:var(--text3);letter-spacing:0">주간 현황</div>
+    </div>
+  </div>
+  <div class="weekly-nav" id="weekly-nav"></div>
+  <div class="weekly-layout" id="weekly-layout">
+    <div id="weekly-top"></div>
+    <div class="weekly-bottom" id="weekly-bottom"></div>
+  </div>
+</div>
+<div class="page" id="page-workload"><div class="page-header"><div class="page-title">담당자별 업무 현황</div><select class="form-input" id="workload-week-select" onchange="onWorkloadWeekChange()" style="width:auto;font-size:13px;padding:5px 10px"></select></div><div class="workload-grid" id="workload-grid"></div></div>
+<div class="page" id="page-workload-detail"><div class="detail-back" onclick="showWorkloadList()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 담당자 현황으로</div><div class="detail-header" id="detail-header"></div><div id="detail-body"></div></div>
+<div class="page" id="page-history"><div class="page-header"><div class="page-title">변경 히스토리</div><button class="btn btn-sm" onclick="clearHistory()" style="color:var(--text2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> 전체 삭제</button></div><div id="history-list"></div></div>
+<div class="page" id="page-members">
+  <div class="page-header"><div class="page-title">등록된 팀원</div></div>
+  <div class="member-grid" id="member-grid"></div>
+  <div class="divider"></div>
+  <div style="margin-bottom:1rem;font-size:14px;font-weight:600">새 팀원 추가</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <input class="form-input" id="new-m-name" placeholder="이름" style="width:140px">
+    <input class="form-input" id="new-m-role" placeholder="역할" style="width:180px">
+    <button class="btn btn-primary" onclick="addMember()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 추가</button>
+  </div>
+</div>
+</div></div>
+<div class="overlay" id="overlay" style="display:none" onclick="closePopover()"></div>
+<div class="popover" id="popover" style="display:none">
+  <div class="pop-title"><span id="pop-title">항목 추가</span><button class="btn btn-sm btn-ghost" onclick="closePopover()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <input type="hidden" id="edit-id">
+  <div class="form-row"><label class="form-lbl">주간 *</label><select class="form-input" id="f-week" onchange="onWeekChange()"></select></div>
+  <div class="form-row" id="new-week-row" style="display:none">
+    <label class="form-lbl">새 주차 이름 *</label><input class="form-input" id="f-new-name" placeholder="W17">
+    <label class="form-lbl" style="margin-top:8px">기간 *</label><input class="form-input" id="f-new-dates" placeholder="9/22–9/26" style="margin-top:4px">
+  </div>
+  <div class="form-row"><label class="form-lbl">기간 (자동입력)</label><input class="form-input" id="f-dates" disabled></div>
+  <div class="form-row"><label class="form-lbl">주간 메인 업무 <span id="main-hint" style="font-size:11px;font-weight:400;color:var(--text3)"></span></label><input class="form-input" id="f-main" placeholder="주간 메인 업무명"></div>
+  <div class="form-row"><label class="form-lbl">트랙 *</label>
+    <select class="form-input" id="f-track">
+      <option value="common">공통</option><option value="core">브랜드 코어 & 보이스</option>
+      <option value="identity">브랜드 아이덴티티</option><option value="asset">브랜드 에셋</option>
+      <option value="site">브랜드 에셋 사이트</option><option value="film">브랜드 Film</option>
+      <option value="collab">공동브랜딩</option>
+    </select>
+  </div>
+  <div class="form-row"><label class="form-lbl">업무 내용 *</label><input class="form-input" id="f-task" placeholder="업무 내용을 입력하세요"></div>
+  <div class="form-row"><label class="form-lbl">담당자 (복수 선택 가능)</label><div class="assignee-checks" id="assignee-checks"></div></div>
+  <div class="pop-footer">
+    <button class="btn btn-danger btn-sm" id="btn-delete" style="display:none;margin-right:auto" onclick="confirmDelete(event)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4h6v2"/></svg> 삭제</button>
+    <button class="btn btn-sm" onclick="closePopover()">취소</button>
+    <button class="btn btn-primary btn-sm" onclick="saveTask()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 저장</button>
+  </div>
+</div>
+<div class="del-overlay" id="del-overlay" style="display:none" onclick="closeDelPop()"></div>
+<div class="del-pop" id="del-pop" style="display:none">
+  <div class="del-pop-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+  <div class="del-pop-title">삭제 확인</div>
+  <div class="del-pop-msg" id="del-pop-msg"></div>
+  <div class="del-pop-footer"><button class="btn btn-sm" onclick="closeDelPop()">취소</button><button class="btn btn-danger btn-sm" onclick="executeDelete()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4h6v2"/></svg> 삭제</button></div>
+</div>
+
+<!-- 트랙 관리 모달 -->
+<div id="track-mgr-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden;display:flex;flex-direction:column;max-height:90vh">
+    <div style="padding:18px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:15px;font-weight:600">트랙 관리</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">트랙 이름과 색상을 수정하거나 새 트랙을 추가하세요</div>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="closeTrackMgr()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px 20px;overflow-y:auto;flex:1">
+      <div id="track-mgr-list" style="margin-bottom:12px"></div>
+      <button class="btn btn-sm" onclick="addTrackItem()" style="width:100%;justify-content:center;border-style:dashed"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 트랙 추가</button>
+    </div>
+    <div style="padding:14px 20px;border-top:.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0">
+      <button class="btn btn-sm" onclick="closeTrackMgr()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveTrackMgr()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 저장</button>
+    </div>
+  </div>
+</div>
+<!-- 일괄 편집 모달 -->
+<div id="bulk-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto">
+  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:760px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:600;flex:1">주차별 일괄 편집</div>
+      <select class="form-input" id="bulk-week-select" onchange="onBulkWeekChange()" style="width:auto;font-size:13px;padding:5px 10px"></select>
+      <button class="btn btn-sm btn-ghost" onclick="closeBulkEdit()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px 20px">
+      <div id="bulk-task-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:480px;overflow-y:auto"></div>
+      <button class="btn btn-sm" onclick="addBulkRow()" style="width:100%;justify-content:center;border-style:dashed"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 업무 추가</button>
+    </div>
+    <div style="padding:12px 20px;border-top:.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="closeBulkEdit()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveBulkEdit()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 저장</button>
+    </div>
+  </div>
+</div>
+<!-- CSV 가져오기 모달 -->
+<div id="csv-import-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.4);align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto">
+  <div style="background:var(--bg);border-radius:var(--r-lg);width:100%;max-width:680px;box-shadow:0 8px 40px rgba(0,0,0,.2);overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:600">CSV 가져오기</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">내보낸 CSV를 수정 후 가져오세요 · id 있으면 수정, 없으면 추가, 업무내용에 <b>*삭제*</b> 입력 시 삭제</div>
+      </div>
+      <button class="btn btn-sm btn-ghost" onclick="closeCsvImport()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="file" id="csv-file-input" accept=".csv" onchange="onCsvFileLoad(event)" style="font-size:13px;flex:1;min-width:0">
+        <span style="font-size:12px;color:var(--text3)">또는</span>
+        <button class="btn btn-sm" onclick="document.getElementById('csv-paste-area').style.display=document.getElementById('csv-paste-area').style.display==='none'?'block':'none'">직접 붙여넣기</button>
+      </div>
+      <textarea id="csv-paste-area" placeholder="CSV 내용을 여기에 붙여넣으세요..." style="display:none;width:100%;height:100px;font-family:monospace;font-size:11px;padding:8px;border:.5px solid var(--border2);border-radius:var(--r-md);resize:vertical;margin-bottom:8px"></textarea>
+      <button class="btn btn-sm btn-primary" onclick="parseCsvPreview()" style="margin-bottom:12px">미리보기</button>
+      <div id="csv-preview-wrap" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">가져오기 모드</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="import-mode" value="smart" checked style="margin-top:2px"> <span><b>스마트 병합</b> — id 기준 수정/추가, *삭제* 표시 행 삭제</span></label>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="import-mode" value="week"> <span><b>주차 덮어쓰기</b> — CSV에 포함된 주차만 기존 업무 삭제 후 교체</span></label>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px"><input type="radio" name="import-mode" value="full"> <span><b>전체 교체</b> — 모든 업무를 CSV로 교체 (주의)</span></label>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">미리보기 <span id="csv-preview-count" style="font-weight:400;color:var(--text3)"></span></div>
+        <div style="border:.5px solid var(--border2);border-radius:var(--r-md);overflow:hidden;overflow-x:auto;max-height:240px;overflow-y:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:500px">
+            <thead><tr style="background:var(--bg2)"><th style="padding:6px 10px;text-align:left;font-weight:600;white-space:nowrap">상태</th><th style="padding:6px 10px;text-align:left;font-weight:600">주차</th><th style="padding:6px 10px;text-align:left;font-weight:600">트랙</th><th style="padding:6px 10px;text-align:left;font-weight:600">업무내용</th><th style="padding:6px 10px;text-align:left;font-weight:600">담당자</th></tr></thead>
+            <tbody id="csv-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="closeCsvImport()">취소</button>
+      <button class="btn btn-primary btn-sm" id="csv-import-btn" style="display:none" onclick="executeImportCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 가져오기</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
